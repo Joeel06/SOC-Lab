@@ -37,7 +37,7 @@ En vez de depender únicamente de las herramientas ya integradas de Wazuh (su Da
 - 📲 **Notifique** en tiempo real vía Telegram.
 - 📊 **Visualice** todo en un panel propio, no en herramientas de terceros ya hechas — para demostrar capacidad de desarrollo full-stack aplicada a ciberseguridad.
 
-Es un proyecto pensado explícitamente como pieza de portfolio: no solo demuestra el uso de herramientas de seguridad estándar de la industria, sino la capacidad de construir software a medida alrededor de ellas.<img width="1024" height="559" alt="2e946b9c-b71f-48aa-b827-120b6e35eb88" src="https://github.com/user-attachments/assets/9d5bb49d-af44-4911-8af8-beb33f142c45" />
+Es un proyecto pensado explícitamente como pieza de portfolio: no solo demuestra el uso de herramientas de seguridad estándar de la industria, sino la capacidad de construir software a medida alrededor de ellas.
 
 
 ---
