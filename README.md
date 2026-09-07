@@ -144,9 +144,82 @@ En **cada** máquina agente:
 > Repite estos pasos en la **Máquina Y** (Kali) y la **Máquina Z** (Ubuntu objetivo).
 
 ## 7. Instalación e integración de Suricata (IDS)
-> Seguir pasos de la documentación.
+> Basado en la documentación.
 > [Documentación Oficial](https://documentation.wazuh.com/current/proof-of-concept-guide/integrate-network-ids-suricata.html).
 
+### 🔧 Instalación (Ubuntu)
+
+```bash
+sudo add-apt-repository ppa:oisf/suricata-stable
+sudo apt-get update
+sudo apt-get install suricata -y
+```
+
+### 📜 Reglas (Emerging Threats)
+
+```bash
+cd /tmp/ && curl -LO https://rules.emergingthreats.net/open/suricata-6.0.8/emerging.rules.tar.gz
+sudo tar -xvzf emerging.rules.tar.gz && sudo mkdir /etc/suricata/rules && sudo mv rules/*.rules /etc/suricata/rules/
+sudo find /etc/suricata/rules -name "*.rules" -exec chmod 777 {} \;
+```
+
+> ⚠️ Verifica siempre cuántas reglas se cargan realmente (`/var/log/suricata/suricata.log`). Un `default-rule-path` mal configurado en `suricata.yaml` puede dejarte con muy pocas reglas activas — en este laboratorio pasó de 359 a **52.617 reglas** al corregir la ruta.
+
+### ⚙️ Configuración (`/etc/suricata/suricata.yaml`)
+
+```yaml
+HOME_NET: "<IP_MAQUINA_Z>"
+EXTERNAL_NET: "any"
+
+default-rule-path: /etc/suricata/rules
+rule-files:
+  - "*.rules"
+
+stats:
+  enabled: yes
+
+af-packet:
+  - interface: enp0s3   # sustituye por la interfaz real (comprobar con `ip a` o `ifconfig`)
+```
+
+Reinicia Suricata para aplicar los cambios:
+
+```bash
+sudo systemctl restart suricata
+```
+
+### 🔗 Integrar Suricata con Wazuh
+
+En el agente Wazuh de la **Máquina Z**, añade este bloque a `/var/ossec/etc/ossec.conf` para que lea el log de Suricata:
+
+```xml
+<ossec_config>
+  <localfile>
+    <log_format>json</log_format>
+    <location>/var/log/suricata/eve.json</location>
+  </localfile>
+</ossec_config>
+```
+
+```bash
+sudo systemctl restart wazuh-agent
+```
+
+> **Importante ⚠️:** en este laboratorio fue necesario además reiniciar el **Wazuh Manager** (no solo el agente) para que empezara a procesar e indexar correctamente los eventos nuevos de Suricata: `sudo systemctl restart wazuh-manager`.
+
+### 🧪 Emulación de ataque y verificación
+
+Wazuh parsea automáticamente `/var/log/suricata/eve.json` y genera las alertas correspondientes. Para comprobarlo, desde la **Máquina X** (el servidor Wazuh) haz un ping a la Máquina Z:
+
+```bash
+ping -c 20 <IP_MAQUINA_Z>
+```
+
+Y revisa las alertas en el módulo **Threat Hunting** del Wazuh Dashboard, filtrando por:
+
+```
+rule.groups:suricata
+```
 
 🚨 Suricata se instaló en la **Máquina Z** (la que recibe los ataques), para inspeccionar el tráfico de red que le llega y generar alertas que luego Wazuh recolecta.
 
