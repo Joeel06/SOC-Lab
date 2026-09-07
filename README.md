@@ -163,7 +163,7 @@ sudo tar -xvzf emerging.rules.tar.gz && sudo mkdir /etc/suricata/rules && sudo m
 sudo find /etc/suricata/rules -name "*.rules" -exec chmod 777 {} \;
 ```
 
-> ⚠️ Verifica siempre cuántas reglas se cargan realmente (`/var/log/suricata/suricata.log`). Un `default-rule-path` mal configurado en `suricata.yaml` puede dejarte con muy pocas reglas activas — en este laboratorio pasó de 359 a **52.617 reglas** al corregir la ruta.
+> ⚠️ Verifica siempre cuántas reglas se cargan realmente (`/var/log/suricata/suricata.log`). Un `default-rule-path` mal configurado en `suricata.yaml` puede dejarte con muy pocas reglas activas.
 
 ### ⚙️ Configuración (`/etc/suricata/suricata.yaml`)
 
