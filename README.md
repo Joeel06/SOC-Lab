@@ -58,6 +58,7 @@ Es un proyecto pensado explícitamente como pieza de portfolio: no solo demuestr
 <img width="1024" height="559" alt="9eeb8cc2-07b1-4e19-adbb-20087b9015ae" src="https://github.com/user-attachments/assets/180bd7ff-bbdd-4ec5-8ef2-45697e0e0abf" />
 
 
+
 - **Ubuntu Server (192.168.0.22):** aloja Wazuh Manager, Indexer y Dashboard. Es el cerebro del SIEM.
 - **Kali Linux (192.168.0.18):** máquina atacante, usada para lanzar escaneos (nmap), pings y pruebas de fuerza bruta SSH controladas.
 - **Ubuntu objetivo (192.168.0.24):** máquina víctima con Suricata instalado, que reenvía sus eventos al Wazuh Manager a través del agente Wazuh.
@@ -69,7 +70,7 @@ Es un proyecto pensado explícitamente como pieza de portfolio: no solo demuestr
 
 1. Instala **VirtualBox** en el PC de sobremesa y en el portátil.
 2. Crea tres VMs:
-   - **Ubuntu Server** (sin entorno gráfico) en el PC de sobremesa — será el host de Wazuh. Recomendado: mínimo 4 GB RAM / 2 vCPU / 50 GB disco para Manager+Indexer+Dashboard juntos.
+   - **Ubuntu Server** (sin entorno gráfico) en el PC de sobremesa — será el host de Wazuh. Recomendado: mínimo 8 GB RAM / 2 vCPU / 50 GB disco para Manager+Indexer+Dashboard juntos.
    - **Ubuntu Desktop/Server** en el portátil — será el objetivo con Suricata.
    - **Kali Linux** en el portátil — será el atacante.
 3. Configura el adaptador de red de las tres VMs en modo **bridge** (o red interna/host-only si prefieres aislar el laboratorio de tu red doméstica), de forma que todas puedan verse entre sí por IP.
