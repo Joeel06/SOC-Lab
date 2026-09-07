@@ -92,7 +92,8 @@ Es un proyecto pensado explícitamente como pieza de portfolio: no solo demuestr
    curl -sO https://packages.wazuh.com/4.x/wazuh-install.sh
    curl -sO https://packages.wazuh.com/4.x/config.yml
    ```
-   > Comprueba siempre la versión más reciente en la [documentación oficial de Wazuh](https://documentation.wazuh.com/current/installation-guide/index.html), ya que la URL del instalador cambia entre versiones.
+   > Comprueba siempre la versión más reciente en la [documentación oficial de Wazuh](https://documentation.wazuh.com/current/installation-guide/packages-list.html),
+   > ya que la URL del instalador cambia entre versiones.
 
 2. Ejecuta el instalador todo-en-uno:
    ```bash
