@@ -147,7 +147,9 @@ En **cada** máquina agente:
 > Basado en la documentación.
 > [Documentación Oficial](https://documentation.wazuh.com/current/proof-of-concept-guide/integrate-network-ids-suricata.html).
 
-### 🔧 Instalación (Ubuntu)
+🚨 Suricata se instala en la **Máquina Z** (Ubuntu que recibe los ataques), para que Wazuh pueda monitorizar y analizar el tráfico de red generado en ese endpoint.
+
+### 🔧 Instalación (Ubuntu Máquina Z)
 
 ```bash
 sudo add-apt-repository ppa:oisf/suricata-stable
@@ -220,8 +222,8 @@ Y revisa las alertas en el módulo **Threat Hunting** del Wazuh Dashboard, filtr
 ```
 rule.groups:suricata
 ```
+<img width="1919" height="698" alt="NIDS-suricata-alerts1" src="https://github.com/user-attachments/assets/eb8364f4-1d0d-4b98-a65d-df25d859d41c" />
 
-🚨 Suricata se instaló en la **Máquina Z** (la que recibe los ataques), para inspeccionar el tráfico de red que le llega y generar alertas que luego Wazuh recolecta.
 
 
 ## 8. Verificación end-to-end del pipeline de detección
