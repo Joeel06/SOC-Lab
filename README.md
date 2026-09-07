@@ -301,13 +301,11 @@ El frontend consume la API del backend (por defecto en `localhost` en el puerto 
 
 ## 10. Funcionalidades del panel
 
-- 📊 **Dashboard principal:** resumen de alertas por severidad (crítica/alta/media/baja), número de agentes, última alerta recibida — todo con datos reales, sin datos de ejemplo.
+- 📊 **Dashboard principal:** resumen de alertas por severidad (crítica/alta/media/baja), número de agentes, última alerta recibida.
 
 - 🖥️ **Vista de agentes:** listado individual de cada agente real (Ubuntu, Kali) con su estado, IP, sistema operativo y contadores de alertas por severidad. Se auto-refresca cada 15 segundos, de forma que si añades o eliminas un agente en Wazuh, el panel se actualiza solo sin tocar código.
 
 - 🔍 **Filtro de alertas por agente:** el desplegable de agentes del filtro se alimenta de la API real (`/api/agents`, sondeada cada 30s), nunca de una lista fija.
-  
-- 👻 **Exclusión del pseudo-agente del Manager:** Wazuh usa internamente el `id: "000"` para representar eventos propios del propio Manager (no un host monitorizado real); el panel lo excluye explícitamente de todos los conteos y listados de agentes para evitar un "agente fantasma".
 
 - 🧩 **Correlación / deduplicación de alertas:** alertas idénticas repetidas en una ventana de tiempo configurable (mismo origen, agente, regla e IPs) se agrupan en una sola entrada con un contador `×N`, en vez de listar cada repetición por separado. Esto evita que, por ejemplo, 10 pings desde la misma IP generen 10 filas distintas.
 
@@ -318,8 +316,6 @@ El frontend consume la API del backend (por defecto en `localhost` en el puerto 
   > ⚠️ Nota de privacidad: la capa gratuita de la API de Gemini puede usar los prompts enviados para entrenar sus modelos (a diferencia de la capa de pago) — algo a tener en cuenta si envías logs sensibles.
   
 - 📲 **Notificaciones por Telegram:** bot configurable desde la propia pantalla de Ajustes (token, chat ID, severidad mínima a notificar). Los mensajes incluyen una explicación enriquecida de la alerta (heurística si no hay análisis de IA, o el resultado de la IA si está disponible), y el contador de repeticiones si la alerta está agrupada.
-
-- ⚙️ **Ajustes de interfaz:** intervalo de refresco automático, severidad y fuente por defecto de los filtros, activar/desactivar correlación y su ventana de tiempo — todo persistido en `backend/data/settings.json` (con los valores sensibles como el token de Telegram o la API key de Gemini enmascarados al mostrarse en el frontend).
 
 
 ### 🧱 Arquitectura interna del backend (resumen)
@@ -351,10 +347,3 @@ hydra -l ubuntu -P /ruta/al/diccionario.txt -t 4 -f ssh://<IP_MAQUINA_Z>
 
 Resultado esperado: Suricata/el propio log de autenticación SSH genera múltiples eventos de intento fallido desde la misma IP en poco tiempo → el motor de correlación los agrupa en una sola alerta `×N` → al ser de severidad alta/crítica se dispara el análisis automático de IA → se envía la notificación a Telegram con el resumen generado. 🎯
 
-
-## 🏢 Cómo se desplegaría esto en un entorno empresarial 
-
-Este laboratorio se instaló manualmente por ser un entorno de pocas máquinas, pero en producción:
-
-- 🚨 **Suricata (NIDS)** no se instala en cada equipo: se coloca en pocos puntos estratégicos de la red (gateway, puerto espejo/SPAN de un switch, o un tap), viendo así el tráfico de todos los equipos que pasan por ese punto.
-- 🛡️ **Wazuh (agente HIDS)** sí es por host, pero no se instala a mano uno por uno: se despliega vía paquetes (`.deb`/`.rpm`/`.msi`) con clave de enrolamiento pre-generada, usando GPO/Active Directory, Ansible/Puppet/Chef, SCCM/Intune, o integrándolo en la imagen "golden" de los equipos nuevos.
