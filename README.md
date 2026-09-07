@@ -226,16 +226,25 @@ El frontend consume la API del backend (por defecto en `localhost` en el puerto 
 ## 10. Funcionalidades del panel
 
 - 📊 **Dashboard principal:** resumen de alertas por severidad (crítica/alta/media/baja), número de agentes, última alerta recibida — todo con datos reales, sin datos de ejemplo.
+
 - 🖥️ **Vista de agentes:** listado individual de cada agente real (Ubuntu, Kali) con su estado, IP, sistema operativo y contadores de alertas por severidad. Se auto-refresca cada 15 segundos, de forma que si añades o eliminas un agente en Wazuh, el panel se actualiza solo sin tocar código.
+
 - 🔍 **Filtro de alertas por agente:** el desplegable de agentes del filtro se alimenta de la API real (`/api/agents`, sondeada cada 30s), nunca de una lista fija.
+  
 - 👻 **Exclusión del pseudo-agente del Manager:** Wazuh usa internamente el `id: "000"` para representar eventos propios del propio Manager (no un host monitorizado real); el panel lo excluye explícitamente de todos los conteos y listados de agentes para evitar un "agente fantasma".
+
 - 🧩 **Correlación / deduplicación de alertas:** alertas idénticas repetidas en una ventana de tiempo configurable (mismo origen, agente, regla e IPs) se agrupan en una sola entrada con un contador `×N`, en vez de listar cada repetición por separado. Esto evita que, por ejemplo, 10 pings desde la misma IP generen 10 filas distintas.
+
 - 🔎 **Detalle de alerta:** al hacer clic en cualquier alerta se abre un modal con el log completo (crudo y en JSON), información de la agrupación/correlación si aplica, y el análisis de IA asociado.
+
 - 🧠 **Análisis con IA (Gemini, capa gratuita):** cada alerta puede analizarse bajo demanda (botón "Analizar con IA"), y las alertas de severidad **crítica** se analizan automáticamente. El prompt usa una persona de "analista SOC" que explica en español qué representa la alerta, su gravedad real y recomendaciones. Los resultados se cachean en memoria para no repetir llamadas innecesarias a la API.
+
   > ⚠️ Nota de privacidad: la capa gratuita de la API de Gemini puede usar los prompts enviados para entrenar sus modelos (a diferencia de la capa de pago) — algo a tener en cuenta si envías logs sensibles.
+  
 - 📲 **Notificaciones por Telegram:** bot configurable desde la propia pantalla de Ajustes (token, chat ID, severidad mínima a notificar). Los mensajes incluyen una explicación enriquecida de la alerta (heurística si no hay análisis de IA, o el resultado de la IA si está disponible), y el contador de repeticiones si la alerta está agrupada.
+
 - ⚙️ **Ajustes de interfaz:** intervalo de refresco automático, severidad y fuente por defecto de los filtros, activar/desactivar correlación y su ventana de tiempo — todo persistido en `backend/data/settings.json` (con los valores sensibles como el token de Telegram o la API key de Gemini enmascarados al mostrarse en el frontend).
-- 💾 **Persistencia de la vista:** la pestaña activa, filtros y modo de auto-refresco se guardan en `localStorage`, así que recargar la página (F5) no te devuelve al Dashboard si estabas en otra pantalla.
+
 
 ### 🧱 Arquitectura interna del backend (resumen)
 
