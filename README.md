@@ -17,12 +17,12 @@ En vez de depender únicamente de las herramientas ya integradas de Wazuh (su Da
 5. [Instalación de Wazuh (Manager + Indexer + Dashboard)](#5-instalación-de-wazuh-manager--indexer--dashboard)
 6. [Despliegue de agentes Wazuh (Ubuntu y Kali)](#6-despliegue-de-agentes-wazuh-ubuntu-y-kali)
 7. [Instalación e integración de Suricata (IDS)](#7-instalación-e-integración-de-suricata-ids)
-8. [Verificación end-to-end del pipeline de detección](#8-verificación-end-to-end-del-pipeline-de-detección)
-9. [Panel propio: mini-soc-dashboard (React + Node)](#9-panel-propio-mini-soc-dashboard-react--node)
+8. [Verificación](#8-verificación-end-to-end-del-pipeline-de-detección)
+9. [Panel propio](#9-panel-propio-mini-soc-dashboard-react--node)
 10. [Funcionalidades del panel](#10-funcionalidades-del-panel)
 11. [Pruebas de validación (fuerza bruta SSH)](#11-pruebas-de-validación-fuerza-bruta-ssh)
-12. [Problemas encontrados y soluciones](#12-problemas-encontrados-y-soluciones)
-13. [Próximos pasos](#13-próximos-pasos)
+
+
 
 ---
 
