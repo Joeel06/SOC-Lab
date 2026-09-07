@@ -1,0 +1,19 @@
+{
+  "name": "mini-soc-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "undici": "^6.28.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
