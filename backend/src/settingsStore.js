@@ -31,7 +31,7 @@ const DEFAULTS = {
     enabled: false,
     apiKey: '',
     model: 'gemini-3.5-flash-lite',
-    autoAnalyzeMinSeverity: 'critical',
+    autoAnalyzeMinSeverity: 'off', // 'off' = nunca analizar automáticamente, sólo a mano desde el panel
   },
 };
 

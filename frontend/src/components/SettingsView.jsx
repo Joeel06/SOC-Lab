@@ -267,6 +267,7 @@ export default function SettingsView({ onSaved }) {
             value={form.ai.autoAnalyzeMinSeverity}
             onChange={(e) => setForm({ ...form, ai: { ...form.ai, autoAnalyzeMinSeverity: e.target.value } })}
           >
+            <option value="off">Nunca (sólo análisis manual)</option>
             <option value="low">Todas (incl. bajas)</option>
             <option value="medium">Medias o más</option>
             <option value="high">Altas o más</option>

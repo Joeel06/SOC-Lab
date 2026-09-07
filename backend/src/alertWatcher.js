@@ -69,7 +69,11 @@ async function tick() {
       notifiedGroupIds.add(group.id);
 
       let aiText = null;
-      if (aiOn && SEVERITY_ORDER[group.severity] >= SEVERITY_ORDER[settings.ai.autoAnalyzeMinSeverity]) {
+      if (
+        aiOn &&
+        settings.ai.autoAnalyzeMinSeverity !== 'off' &&
+        SEVERITY_ORDER[group.severity] >= SEVERITY_ORDER[settings.ai.autoAnalyzeMinSeverity]
+      ) {
         try {
           const result = await analyzeAlert(group, { apiKey: settings.ai.apiKey, model: settings.ai.model });
           setCachedAnalysis(group.id, result);
