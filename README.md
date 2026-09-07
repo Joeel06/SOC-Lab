@@ -1,164 +1,349 @@
-# Mini-SOC Dashboard — Wazuh + Suricata unificado
+# 🛰️ Mini-SOC Casero
 
-Panel personalizado que centraliza las alertas de **Wazuh** (host-based: auth, FIM/syscheck, rootcheck)
-y las de **Suricata** (red/IDS, ya ingeridas por Wazuh vía `eve.json`) en una sola vista, ordenada por
-severidad, con las alertas más críticas destacadas arriba.
+Laboratorio que simula un Security Operations Center (SOC) real: detección de amenazas de red, correlación de eventos, análisis asistido por IA y visualización propia.
 
-Arquitectura:
+En vez de depender únicamente de las herramientas ya integradas de Wazuh (su Dashboard basado en OpenSearch/Kibana), este proyecto añade una capa de visualización a medida construida en **React + Node.js**, con correlación de alertas, alertado por Telegram y análisis de logs con IA (Gemini).
 
-```
-Suricata (eve.json) ──▶ Wazuh Manager (localfile) ──▶ Wazuh Indexer (OpenSearch, wazuh-alerts-*)
-                                                              │
-                                                    backend/ (Node/Express)
-                                                    consulta el Indexer, normaliza
-                                                    y clasifica cada alerta como
-                                                    "suricata" o "wazuh"
-                                                              │
-                                                    frontend/ (React + Vite)
-                                                    panel con resumen, filtros
-                                                    y feed priorizado
-```
+> 🔒 **Nota sobre las IPs:** Las máquinas del laboratorio se referencian aquí como **Máquina X**, **Máquina Y** y **Máquina Z** en vez de sus IPs reales. La tabla de la sección 3 indica qué es cada una.
 
-No hace falta tocar Suricata ni Wazuh: como ya tienes el `eve.json` integrado como `localfile` en el
-manager, esas alertas ya están en el índice `wazuh-alerts-*` del Indexer, mezcladas con las de host.
-El backend las separa mirando `rule.groups` / los campos `data.alert.*` que deja el decoder de Suricata.
+---
 
-## Arranque rápido (modo demo, sin credenciales)
+## 📑 Índice
 
-Por defecto el backend arranca en `MODE=mock` y genera alertas de ejemplo (mezcla realista de
-Suricata + Wazuh) para que puedas ver el panel funcionando ya mismo.
+1. [Visión general del proyecto](#1-visión-general-del-proyecto)
+2. [Stack tecnológico](#2-stack-tecnológico)
+3. [Arquitectura del laboratorio](#3-arquitectura-del-laboratorio)
+4. [Preparación de las máquinas virtuales](#4-preparación-de-las-máquinas-virtuales)
+5. [Instalación de Wazuh (Manager + Indexer + Dashboard)](#5-instalación-de-wazuh-manager--indexer--dashboard)
+6. [Despliegue de agentes Wazuh (Ubuntu y Kali)](#6-despliegue-de-agentes-wazuh-ubuntu-y-kali)
+7. [Instalación e integración de Suricata (IDS)](#7-instalación-e-integración-de-suricata-ids)
+8. [Verificación](#8-verificación-end-to-end-del-pipeline-de-detección)
+9. [Panel propio](#9-panel-propio-mini-soc-dashboard-react--node)
+10. [Funcionalidades del panel](#10-funcionalidades-del-panel)
+11. [Pruebas de validación (fuerza bruta SSH)](#11-pruebas-de-validación-fuerza-bruta-ssh)
+
+
+
+---
+
+## 1. Visión general del proyecto
+
+🎯 El objetivo es montar, de principio a fin, un mini-SOC funcional que:
+
+- 🕵️ **Detecte** actividad maliciosa en la red (escaneos de puertos, fuerza bruta SSH, tráfico anómalo) mediante un IDS de red.
+- 🧩 **Centralice y correlacione** esos eventos en un SIEM.
+- 🔇 **Reduzca el ruido** agrupando alertas repetidas/idénticas en una sola entrada.
+- 🤖 **Explique** cada alerta con ayuda de un modelo de IA, como lo haría un analista SOC junior.
+- 📲 **Notifique** en tiempo real vía Telegram.
+- 📊 **Visualice** todo en un panel propio, no en herramientas de terceros ya hechas — para demostrar capacidad de desarrollo full-stack aplicada a ciberseguridad.
+
+Es un proyecto pensado explícitamente como pieza de portfolio: no solo demuestra el uso de herramientas de seguridad estándar de la industria, sino la capacidad de construir software a medida alrededor de ellas.
+
+
+---
+
+## 2. Stack tecnológico
+
+| Capa | Herramienta | Función |
+|---|---|---|
+| 🛡️ SIEM | **Wazuh** (Manager + Indexer + Dashboard) | Recolección, correlación y almacenamiento de eventos de seguridad |
+| 🚨 IDS de red | **Suricata** | Detección de intrusiones a nivel de red (escaneos, patrones de ataque conocidos) |
+| ⚙️ Backend del panel | **Node.js + Express** | API propia que consulta Wazuh, correlaciona alertas, gestiona ajustes y notificaciones |
+| ⚛️ Frontend del panel | **React + Vite** | Interfaz de usuario del SOC (dashboard, vista de agentes, ajustes) |
+| 📩 Alertado | **Telegram Bot API** | Notificaciones en tiempo real de alertas |
+| 🧠 Análisis de IA | **Google Gemini** (capa gratuita) | Análisis de logs de alertas con una persona de "analista SOC" |
+| 💻 Virtualización | **VirtualBox** | VMs de Ubuntu Server, Ubuntu (objetivo) y Kali (atacante) |
+
+---
+
+## 3. Arquitectura del laboratorio
+
+<img width="1024" height="559" alt="db72d1ea-6496-48e4-8a58-a765b1f639ab" src="https://github.com/user-attachments/assets/8f10e2a5-9ed2-4f4b-8626-903e19ae073f" />
+
+
+
+| Etiqueta | Máquina | Rol |
+|---|---|---|
+| 🖥️ **Máquina X** | Ubuntu Server ("UbuntuServerSoc") | Aloja Wazuh Manager, Indexer y Dashboard — el cerebro del SIEM |
+| 💀 **Máquina Y** | Kali Linux | Atacante: lanza escaneos (nmap), pings y pruebas de fuerza bruta SSH controladas |
+| 🎯 **Máquina Z** | Ubuntu (objetivo) | Víctima con Suricata instalado, reenvía sus eventos al Wazuh Manager vía agente Wazuh |
+
+**mini-soc-dashboard:** aplicación propia que consulta la API del Indexer (datos de alertas) y la API del Manager (roster de agentes) en la **Máquina X**, y corre en cualquier equipo con acceso de red al servidor Wazuh.
+
+---
+
+## 4. Preparación de las máquinas virtuales
+
+1. Instala **VirtualBox** en el PC de sobremesa y en el portátil.
+2. Crea tres VMs:
+   - **Ubuntu Server** (sin entorno gráfico) en el PC de sobremesa → **Máquina X**, será el host de Wazuh. Recomendado: mínimo 4 GB RAM / 2 vCPU / 50 GB disco para Manager+Indexer+Dashboard juntos.
+   - **Kali Linux** en el portátil → **Máquina Y**, será el atacante.
+   - **Ubuntu Desktop/Server** en el portátil → **Máquina Z**, será el objetivo con Suricata.
+3. Configura el adaptador de red de las tres VMs en modo **bridge** (o red interna/host-only si prefieres aislar el laboratorio de tu red doméstica), de forma que todas puedan verse entre sí por IP.
+4. Asigna IP estática a la **Máquina X** (Ubuntu Server que alojará Wazuh).
+
+
+## 5. Instalación de Wazuh (Manager + Indexer + Dashboard)
+
+⚙️ Se utilizó el script de instalación "todo en uno" oficial de Wazuh, que despliega Manager, Indexer y Dashboard en la misma máquina (**Máquina X**) — adecuado para un laboratorio de este tamaño.
+
+1. En la **Máquina X**, descarga el instalador oficial:
+   ```bash
+   curl -sO https://packages.wazuh.com/4.x/wazuh-install.sh
+   curl -sO https://packages.wazuh.com/4.x/config.yml
+   ```
+   > Comprueba siempre la versión más reciente en la [documentación oficial de Wazuh](https://documentation.wazuh.com/current/installation-guide/packages-list.html),
+   > ya que la URL del instalador cambia entre versiones.
+
+2. Ejecuta el instalador todo-en-uno:
+   ```bash
+   sudo bash wazuh-install.sh -a
+   ```
+   Esto instala y configura automáticamente Wazuh Indexer, Wazuh Manager, Filebeat y Wazuh Dashboard, y genera certificados TLS autofirmados para las comunicaciones internas.
+
+3. Al finalizar, el script muestra las credenciales generadas para el usuario `admin` del Dashboard — **guárdalas** 🔑, no vuelven a mostrarse en claro (puedes regenerarlas después si es necesario).
+
+4. Verifica que los tres servicios están activos:
+   ```bash
+   sudo systemctl status wazuh-manager
+   sudo systemctl status wazuh-indexer
+   sudo systemctl status wazuh-dashboard
+   ```
+
+5. Accede al Dashboard desde un navegador en `https://<IP_MAQUINA_X>` y confirma el login con las credenciales de `admin`. ✅
+
+---
+
+## 6. Despliegue de agentes Wazuh (Ubuntu y Kali)
+
+El agente Wazuh se instala en cada máquina que quieras monitorizar (**Máquina Y** y **Máquina Z**), no en el servidor.
+
+En **cada** máquina agente:
+
+1. Importa la clave GPG del repositorio de Wazuh e instala el paquete del agente:
+   ```bash
+   curl -o wazuh-agent.deb https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_<VERSION>_amd64.deb
+   sudo WAZUH_MANAGER='<IP_MAQUINA_X>' dpkg -i ./wazuh-agent.deb
+   ```
+   (Sustituye `<VERSION>` por la versión concreta indicada en la documentación oficial, y `<IP_MAQUINA_X>` por la IP real de tu Wazuh Manager.)
+
+2. Habilita e inicia el agente:
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable wazuh-agent
+   sudo systemctl start wazuh-agent
+   ```
+
+3. Verifica que el agente se conectó correctamente:
+   ```bash
+   sudo systemctl status wazuh-agent
+   ```
+
+4. Desde el **Wazuh Dashboard** (Agentes → lista de agentes) o desde la API del Manager, confirma que el nuevo agente aparece como **Active** ✅.
+
+> Repite estos pasos en la **Máquina Y** (Kali) y la **Máquina Z** (Ubuntu objetivo).
+
+## 7. Instalación e integración de Suricata (IDS)
+> Basado en la documentación.
+> [Documentación Oficial](https://documentation.wazuh.com/current/proof-of-concept-guide/integrate-network-ids-suricata.html).
+
+🚨 Suricata se instala en la **Máquina Z** (Ubuntu que recibe los ataques), para que Wazuh pueda monitorizar y analizar el tráfico de red generado en ese endpoint.
+
+### 🔧 Instalación (Ubuntu Máquina Z)
 
 ```bash
-# 1. Backend
-cd backend
-cp .env.example .env
-npm install
-npm run dev          # http://localhost:4000
-
-# 2. Frontend (otra terminal)
-cd frontend
-npm install
-npm run dev          # http://localhost:5173
+sudo add-apt-repository ppa:oisf/suricata-stable
+sudo apt-get update
+sudo apt-get install suricata -y
 ```
 
-Abre http://localhost:5173 — verás el panel con datos simulados, refrescándose solo.
+### 📜 Reglas (Emerging Threats)
 
-## Conectarlo a tu Wazuh real
-
-Edita `backend/.env`:
-
-```
-MODE=live
-WAZUH_INDEXER_HOST=https://192.168.0.22:9200
-WAZUH_INDEXER_USER=admin
-WAZUH_INDEXER_PASS=tu_password_del_indexer
-WAZUH_INDEXER_INSECURE=true   # true si usas el certificado autofirmado por defecto
+```bash
+cd /tmp/ && curl -LO https://rules.emergingthreats.net/open/suricata-6.0.8/emerging.rules.tar.gz
+sudo tar -xvzf emerging.rules.tar.gz && sudo mkdir /etc/suricata/rules && sudo mv rules/*.rules /etc/suricata/rules/
+sudo find /etc/suricata/rules -name "*.rules" -exec chmod 777 {} \;
 ```
 
-Reinicia el backend (`npm run dev`) y el panel pasará a mostrar alertas reales de tu
-`wazuh-alerts-*`. Si lo corres desde el propio "UbuntuServerSoc" o desde una máquina de tu
-red local que tenga visibilidad al puerto 9200, funcionará sin nada más.
+> ⚠️ Verifica siempre cuántas reglas se cargan realmente (`/var/log/suricata/suricata.log`). Un `default-rule-path` mal configurado en `suricata.yaml` puede dejarte con muy pocas reglas activas.
 
-### Listado real de agentes (pestaña "Agentes")
+### ⚙️ Configuración (`/etc/suricata/suricata.yaml`)
 
-El Indexer sólo tiene alertas, no el roster de agentes — por eso el nº de "agentes" que veías
-en el resumen podía no coincidir con tus agentes reales: sólo contaba a quien había disparado
-alguna alerta dentro de las últimas ~1500 que trae el panel, no a los agentes sin alertas
-recientes. La pestaña **Agentes** resuelve esto consultando la API del propio Wazuh Manager
-(puerto 55000), que sí tiene el listado real con su estado de conexión.
+```yaml
+HOME_NET: "<IP_MAQUINA_Z>"
+EXTERNAL_NET: "any"
 
-Añade en `backend/.env` (usuario de sólo lectura recomendado):
+default-rule-path: /etc/suricata/rules
+rule-files:
+  - "*.rules"
+
+stats:
+  enabled: yes
+
+af-packet:
+  - interface: enp0s3   # sustituye por la interfaz real (comprobar con `ip a` o `ifconfig`)
+```
+
+Reinicia Suricata para aplicar los cambios:
+
+```bash
+sudo systemctl restart suricata
+```
+
+### 🔗 Integrar Suricata con Wazuh
+
+En el agente Wazuh de la **Máquina Z**, añade este bloque a `/var/ossec/etc/ossec.conf` para que lea el log de Suricata:
+
+```xml
+<ossec_config>
+  <localfile>
+    <log_format>json</log_format>
+    <location>/var/log/suricata/eve.json</location>
+  </localfile>
+</ossec_config>
+```
+
+```bash
+sudo systemctl restart wazuh-agent
+```
+
+> **Importante ⚠️:** en este laboratorio fue necesario además reiniciar el **Wazuh Manager** (no solo el agente) para que empezara a procesar e indexar correctamente los eventos nuevos de Suricata: `sudo systemctl restart wazuh-manager`.
+
+### 🧪 Emulación de ataque y verificación
+
+Wazuh parsea automáticamente `/var/log/suricata/eve.json` y genera las alertas correspondientes. Para comprobarlo, desde la **Máquina X** (el servidor Wazuh) haz un ping a la Máquina Z:
+
+```bash
+ping -c 20 <IP_MAQUINA_Z>
+```
+
+Y revisa las alertas en el módulo **Threat Hunting** del Wazuh Dashboard, filtrando por:
 
 ```
-WAZUH_API_HOST=https://192.168.0.22:55000
+rule.groups:suricata
+```
+<img width="1919" height="698" alt="NIDS-suricata-alerts1" src="https://github.com/user-attachments/assets/eb8364f4-1d0d-4b98-a65d-df25d859d41c" />
+
+
+
+## 8. Verificación end-to-end del pipeline de detección
+
+🧪 Para confirmar que todo el pipeline (Suricata → agente → Manager → Indexer → Dashboard) funciona:
+
+1. Desde la **Máquina Y** (Kali), lanza un escaneo de reconocimiento contra la **Máquina Z**:
+   ```bash
+   nmap -sS <IP_MAQUINA_Z>
+   ping <IP_MAQUINA_Z>
+   ```
+
+2. En el Wazuh Dashboard (o consultando directamente el índice `wazuh-alerts-*` del Indexer), deberían aparecer alertas de tipo **ET SCAN** generadas por las reglas de Suricata, asociadas al agente de la **Máquina Z**.
+
+Esto confirma que la cadena de detección de red está funcionando correctamente antes de construir el panel propio encima. ✅
+
+---
+
+## 9. Panel propio: mini-soc-dashboard (React + Node)
+
+Con Wazuh y Suricata funcionando, se construyó una aplicación propia (`mini-soc-dashboard`) en vez de depender solo del Dashboard nativo de Wazuh, con dos partes:
+
+- ⚙️ **Backend** (Node.js + Express, módulos ESM): expone una API propia que consulta Wazuh, normaliza y correlaciona las alertas, gestiona ajustes persistentes, y orquesta las notificaciones de Telegram y el análisis con IA.
+- ⚛️ **Frontend** (React + Vite): interfaz visual del SOC — dashboard de alertas, vista por agente, y pantalla de ajustes.
+
+### 9.1 Wazuh expone dos APIs distintas
+
+Es importante distinguir las dos APIs de Wazuh que el backend consume:
+
+| API | Puerto | Qué ofrece |
+|---|---|---|
+| 📇 **Wazuh Indexer** (OpenSearch) | `9200` | Datos de alertas propiamente dichos (`wazuh-alerts-*`) |
+| 🗂️ **Wazuh Manager REST API** | `55000` | Roster real de agentes registrados (autenticación JWT vía `/security/user/authenticate`) |
+
+Usar solo los datos de alertas para "contar agentes" es un error común: solo refleja qué agentes generaron alertas recientes, no el listado real y actualizado de agentes (activos, desconectados, eliminados). Por eso el backend consulta ambas APIs.
+
+### 9.2 Variables de entorno del backend (`backend/.env`)
+
+```bash
+
+# Wazuh Indexer (alertas)
+WAZUH_INDEXER_HOST=https://<IP_MAQUINA_X>:9200
+WAZUH_INDEXER_USER=<usuario del indexer>
+WAZUH_INDEXER_PASS=<password>
+WAZUH_INDEXER_INSECURE=true   # certificados autofirmados
+
+# Wazuh Manager API (roster de agentes)
+WAZUH_API_HOST=https://<IP_MAQUINA_X>:55000
 WAZUH_API_USER=wazuh-wui
-WAZUH_API_PASS=tu_password_de_la_api
+WAZUH_API_PASS=<password de la API del manager>
 WAZUH_API_INSECURE=true
 ```
 
-Si no la configuras, la pestaña Agentes sigue funcionando pero degradada: sólo muestra los
-agentes que aparecen en las alertas (con un aviso en el panel explicándolo).
+> La contraseña de `wazuh-wui` para la API del Manager se puede consultar en la propia VM del servidor, normalmente en `/var/ossec/api/configuration/` o regenerarla con las herramientas de Wazuh; consulta la documentación oficial para el procedimiento exacto de tu versión.
 
-## Qué hace el backend
+Como los certificados del laboratorio son autofirmados, el backend usa un dispatcher HTTP personalizado (`undici`) con `rejectUnauthorized: false` cuando `*_INSECURE=true`, para poder conectar sin errores de TLS.
 
-- `GET /api/alerts` — trae las últimas N alertas del índice `wazuh-alerts-*`, las normaliza a un
-  formato común `{ id, timestamp, severity, level, source, agent, description, srcIp, dstIp, raw }`
-  y calcula un resumen (conteo por severidad, nº de agentes, última alerta).
-- Clasificación `source`:
-  - `suricata` si `rule.groups` incluye `ids`/`suricata`/`nids` o el evento trae `data.alert.signature`
-    (así es como llegan los eventos de `eve.json` una vez decodificados por Wazuh).
-  - `wazuh` en cualquier otro caso (autenticación, FIM, rootcheck, reglas propias, etc.).
-- Mapeo de severidad a partir de `rule.level` (escala 0–15 de Wazuh):
-  - `critical` ≥ 12, `high` 8–11, `medium` 4–7, `low` 0–3.
-- Filtros soportados vía query string: `minSeverity`, `source` (`all|suricata|wazuh`), `agent`, `q`
-  (búsqueda libre en la descripción).
-- `GET /api/agents` — roster de agentes vía la API del Wazuh Manager (puerto 55000), cruzado con
-  el conteo de alertas por severidad de cada uno. Si esa API no está configurada o falla, se
-  degrada a un listado derivado sólo de las alertas (`source: "alerts-derived"` en la respuesta,
-  con un `warning` si hubo un error concreto).
-- `GET /api/settings` / `PUT /api/settings` — ajustes de interfaz y de Telegram, persistidos en
-  `backend/data/settings.json`. El token del bot nunca se devuelve en claro, sólo si hay uno
-  guardado (`botTokenSet`) y sus últimos 4 caracteres (`botTokenPreview`).
-- `POST /api/telegram/test` — manda un mensaje de prueba al chat configurado.
-- Vigilante en segundo plano (`telegramNotifier.js`): cada 20s revisa si hay alertas nuevas por
-  encima de la severidad mínima configurada y, si Telegram está activado, las reenvía.
+### 9.3 Instalación y arranque
 
-## Qué hace el frontend
+```bash
+# Backend
+cd backend
+npm install
+npm run dev      
 
-El panel tiene tres pestañas (Dashboard / Agentes / Ajustes):
+# Frontend
+cd frontend
+npm install
+npm run dev
+```
 
-**Dashboard**
-- Tarjetas resumen: nº de críticas/altas/medias/bajas (con % sobre el total), agentes con
-  alertas, hora de la última alerta.
-- Feed de alertas ordenado por severidad y luego por hora, con la crítica destacada visualmente
-  (borde rojo + parpadeo sutil) para que salte a la vista.
-- Filtros por severidad mínima, origen (Suricata/Wazuh/todas), agente y texto libre.
-- Auto-refresco (intervalo configurable desde Ajustes), con pausa manual.
-- Badge de origen en cada fila (🛰 Suricata / 🖥 Wazuh) para saber de un vistazo si es un evento
-  de red o de host.
+El frontend consume la API del backend (por defecto en `localhost` en el puerto configurado), que a su vez consulta Wazuh en la red del laboratorio.
 
-**Agentes**
-- Listado de agentes por separado, cada uno con su estado (activo/desconectado/nunca conectado),
-  IP, SO y versión (vía la API del Wazuh Manager — ver más abajo), más un desglose de sus
-  alertas por severidad y la hora de la última.
-- Al hacer clic en un agente, filtra el Dashboard a sólo ese agente.
+---
 
-**Ajustes**
-- Interfaz: frecuencia de auto-refresco, severidad y origen por defecto al abrir el panel, y
-  activar/ajustar la correlación de alertas (ver abajo).
-- Telegram: activar/desactivar el envío de alertas a un bot de Telegram, token del bot, chat ID
-  destino, severidad mínima a notificar, y un botón para mandar un mensaje de prueba.
-- IA (Gemini): API key gratuita de Google AI Studio, modelo, y desde qué severidad se analiza
-  automáticamente. Todo se guarda en `backend/data/settings.json` (fuera de git).
+## 10. Funcionalidades del panel
 
-### Correlación de alertas
+- 📊 **Dashboard principal:** resumen de alertas por severidad (crítica/alta/media/baja), número de agentes, última alerta recibida.
 
-Una ráfaga de eventos casi idénticos (misma regla + mismo agente + mismas IPs) en poco tiempo —
-por ejemplo, 10 pings seguidos desde la misma IP — se agrupa en **una sola entrada** con un
-contador (`×10` en el feed) en vez de llenar la lista con filas repetidas. Se controla desde
-Ajustes → Interfaz (activar/desactivar, y la ventana de tiempo, por defecto 10 min). El resumen
-de severidades sigue contando cada evento real por separado; solo el feed visual se agrupa.
+- 🖥️ **Vista de agentes:** listado individual de cada agente real (Ubuntu, Kali) con su estado, IP, sistema operativo y contadores de alertas por severidad. Se auto-refresca cada 15 segundos, de forma que si añades o eliminas un agente en Wazuh, el panel se actualiza solo sin tocar código.
 
-### Análisis con IA (Gemini)
+- 🔍 **Filtro de alertas por agente:** el desplegable de agentes del filtro se alimenta de la API real (`/api/agents`, sondeada cada 30s), nunca de una lista fija.
 
-Cada alerta se puede analizar con Gemini (nivel gratuito de Google AI Studio) para obtener una
-explicación tipo "analista SOC": resumen, técnica/patrón (con MITRE ATT&CK si aplica), qué
-comprobar a continuación, y si podría ser un falso positivo.
+- 🧩 **Correlación / deduplicación de alertas:** alertas idénticas repetidas en una ventana de tiempo configurable (mismo origen, agente, regla e IPs) se agrupan en una sola entrada con un contador `×N`, en vez de listar cada repetición por separado. Esto evita que, por ejemplo, 10 pings desde la misma IP generen 10 filas distintas.
 
-- **Bajo demanda**: botón "Analizar con IA" en el detalle de cualquier alerta.
-- **Automático para críticas**: el vigilante en segundo plano analiza sola cualquier alerta (o
-  grupo correlacionado) que llegue a severidad crítica, y guarda el resultado en caché — al abrir
-  esa alerta en el panel, el análisis ya está ahí. El umbral es configurable en Ajustes.
-- Si Telegram también está activado, el análisis de IA se incluye directamente en el mensaje.
+- 🔎 **Detalle de alerta:** al hacer clic en cualquier alerta se abre un modal con el log completo (crudo y en JSON), información de la agrupación/correlación si aplica, y el análisis de IA asociado.
 
-Aviso de privacidad: en el nivel gratuito de la API de Gemini, Google puede usar los prompts para
-mejorar sus modelos (a diferencia de los tiers de pago). Ten esto en cuenta si tus logs incluyen
-algo que prefieras no compartir.
+- 🧠 **Análisis con IA (Gemini, capa gratuita):** cada alerta puede analizarse bajo demanda (botón "Analizar con IA"), y las alertas de severidad **crítica** se analizan automáticamente. El prompt usa una persona de "analista SOC" que explica en español qué representa la alerta, su gravedad real y recomendaciones. Los resultados se cachean en memoria para no repetir llamadas innecesarias a la API.
 
-## Próximos pasos sugeridos
+  > ⚠️ Nota de privacidad: la capa gratuita de la API de Gemini puede usar los prompts enviados para entrenar sus modelos (a diferencia de la capa de pago) — algo a tener en cuenta si envías logs sensibles.
+  
+- 📲 **Notificaciones por Telegram:** bot configurable desde la propia pantalla de Ajustes (token, chat ID, severidad mínima a notificar). Los mensajes incluyen una explicación enriquecida de la alerta (heurística si no hay análisis de IA, o el resultado de la IA si está disponible), y el contador de repeticiones si la alerta está agrupada.
 
-- Añadir persistencia de "vistas/atendidas" (marcar alerta como revisada) — hoy es de solo lectura.
-- Meter aquí la capa de Airia (scoring de riesgo por IA) como un campo extra `riskScore` que el
-  backend calcule antes de servir la alerta, y ordenar por eso en vez de (o además de) `rule.level`.
-- Autenticación del propio panel (hoy no tiene login, pensado para uso en tu red local).
-- Otros canales de notificación además de Telegram (email, webhook genérico, Slack...).
+
+### 🧱 Arquitectura interna del backend (resumen)
+
+- `normalize.js` — normaliza el formato de alertas de Wazuh a un modelo interno consistente, calcula severidad (`rule.level` 0–15 → crítica ≥12 / alta 8-11 / media 4-7 / baja 0-3).
+- `correlate.js` — agrupa alertas por clave `[origen, agente, regla, IP origen, IP destino]` dentro de una ventana de tiempo deslizante.
+- `gemini.js` — construye el prompt de analista SOC y llama a la API de Gemini.
+- `telegram.js` — formatea y envía los mensajes de alerta.
+- `alertWatcher.js` — proceso en segundo plano (cada ~20s) que combina correlación + análisis automático de críticas + envío a Telegram en un único ciclo, con deduplicación para no notificar dos veces la misma alerta.
+- `wazuhManagerClient.js` — cliente de la API del Manager (autenticación JWT, roster de agentes).
+- `settingsStore.js` — persistencia de ajustes en disco.
+
+---
+
+## 11. Pruebas de validación (fuerza bruta SSH)
+
+🧪 Para validar el pipeline completo de extremo a extremo (detección → correlación → IA → Telegram) se ejecutó una prueba controlada de fuerza bruta SSH desde la **Máquina Y** (Kali) contra la **Máquina Z** (Ubuntu objetivo), usando **Hydra**:
+
+```bash
+hydra -l ubuntu -P /ruta/al/diccionario.txt -t 4 -f ssh://<IP_MAQUINA_Z>
+```
+
+- `-l` usuario objetivo
+- `-P` diccionario de contraseñas
+- `-t` número de tareas en paralelo
+- `-f` detener al encontrar la primera credencial válida
+
+> ✅ Prerrequisito: el servicio SSH debe estar instalado, activo y escuchando en la máquina objetivo (`sudo systemctl status ssh`, `sudo ss -tlnp | grep :22`), y el firewall debe permitir el tráfico desde la red del laboratorio.
+
+Resultado esperado: Suricata/el propio log de autenticación SSH genera múltiples eventos de intento fallido desde la misma IP en poco tiempo → el motor de correlación los agrupa en una sola alerta `×N` → al ser de severidad alta/crítica se dispara el análisis automático de IA → se envía la notificación a Telegram con el resumen generado. 🎯
+
