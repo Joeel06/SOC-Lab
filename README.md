@@ -70,7 +70,7 @@ Es un proyecto pensado explícitamente como pieza de portfolio: no solo demuestr
 
 1. Instala **VirtualBox** en el PC de sobremesa y en el portátil.
 2. Crea tres VMs:
-   - **Ubuntu Server** (sin entorno gráfico) en el PC de sobremesa — será el host de Wazuh. Recomendado: mínimo 8 GB RAM / 2 vCPU / 50 GB disco para Manager+Indexer+Dashboard juntos.
+   - **Ubuntu Server** (sin entorno gráfico) en el PC de sobremesa — será el host de Wazuh. Recomendado: mínimo 4 GB RAM / 2 vCPU / 50 GB disco para Manager+Indexer+Dashboard juntos.
    - **Ubuntu Desktop/Server** en el portátil — será el objetivo con Suricata.
    - **Kali Linux** en el portátil — será el atacante.
 3. Configura el adaptador de red de las tres VMs en modo **bridge** (o red interna/host-only si prefieres aislar el laboratorio de tu red doméstica), de forma que todas puedan verse entre sí por IP.
