@@ -143,7 +143,7 @@ En **cada** máquina agente:
 > Repite estos pasos en la **Máquina Y** (Kali) y la **Máquina Z** (Ubuntu objetivo).
 
 ## 7. Instalación e integración de Suricata (IDS)
-> Seguir pasos de la documentación [documentación oficial de Suricata]([https://documentation.wazuh.com/current/installation-guide/index.html](https://documentation.wazuh.com/current/proof-of-concept-guide/integrate-network-ids-suricata.html)).
+> Seguir pasos de la documentación [documentación oficial de Suricata]([https://documentation.wazuh.com/current/proof-of-concept-guide/integrate-network-ids-suricata.html]).
 
 
 🚨 Suricata se instaló en la **Máquina Z** (la que recibe los ataques), para inspeccionar el tráfico de red que le llega y generar alertas que luego Wazuh recolecta.
