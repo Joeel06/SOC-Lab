@@ -55,30 +55,8 @@ Es un proyecto pensado explícitamente como pieza de portfolio: no solo demuestr
 
 ## 3. Arquitectura del laboratorio
 
-```
-┌─────────────────────────────┐        ┌────────────────────────────────────────┐
-│         PC de sobremesa      │        │                 Portátil                │
-│                              │        │                                          │
-│  ┌────────────────────────┐  │        │  ┌───────────────┐   ┌────────────────┐ │
-│  │ VM: Ubuntu Server        │  │        │  │ VM: Kali Linux │   │ VM: Ubuntu      │ │
-│  │ "UbuntuServerSoc"        │  │        │  │ 192.168.0.18   │   │ (objetivo)      │ │
-│  │ IP: 192.168.0.22         │  │        │  │ Atacante       │──▶│ 192.168.0.24    │ │
-│  │                          │  │        │  └───────────────┘   │ Suricata (IDS)  │ │
-│  │  • Wazuh Manager         │◀─┼────────┼───────────────────────┤ Wazuh Agent     │ │
-│  │  • Wazuh Indexer         │  │        │                       └────────────────┘ │
-│  │  • Wazuh Dashboard       │  │        │                                          │
-│  │  • Wazuh Agent (Kali)    │  │        │                                          │
-│  └────────────────────────┘  │        │                                          │
-└──────────────┬───────────────┘        └────────────────────────────────────────┘
-               │
-               │ (API Indexer :9200 + API Manager :55000)
-               ▼
-     ┌───────────────────────┐
-     │  mini-soc-dashboard    │
-     │  Backend Node/Express  │──▶ Telegram Bot API
-     │  Frontend React        │──▶ Gemini API (análisis IA)
-     └───────────────────────┘
-```
+<img width="1024" height="559" alt="9eeb8cc2-07b1-4e19-adbb-20087b9015ae" src="https://github.com/user-attachments/assets/180bd7ff-bbdd-4ec5-8ef2-45697e0e0abf" />
+
 
 - **Ubuntu Server (192.168.0.22):** aloja Wazuh Manager, Indexer y Dashboard. Es el cerebro del SIEM.
 - **Kali Linux (192.168.0.18):** máquina atacante, usada para lanzar escaneos (nmap), pings y pruebas de fuerza bruta SSH controladas.
