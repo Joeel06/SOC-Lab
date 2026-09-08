@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { getOrCreateSessionSecret } from './sessionSecret.js';
 dotenv.config();
 
 export const config = {
@@ -21,5 +22,16 @@ export const config = {
       pass: process.env.WAZUH_API_PASS || '',
       insecure: String(process.env.WAZUH_API_INSECURE ?? process.env.WAZUH_INDEXER_INSECURE ?? 'true') === 'true',
     },
+  },
+
+  // Login del panel: usuario/contraseña fijos por .env, en texto plano —
+  // igual que las contraseñas de Wazuh de arriba, sin hash que generar a
+  // mano. El SESSION_SECRET, si no se fija en .env, se autogenera una sola
+  // vez y se guarda en backend/data/session_secret (ver sessionSecret.js).
+  auth: {
+    user: process.env.ADMIN_USER || 'admin',
+    password: process.env.ADMIN_PASSWORD || '',
+    sessionSecret: getOrCreateSessionSecret(process.env.SESSION_SECRET),
+    cookieSecure: String(process.env.COOKIE_SECURE || 'false') === 'true',
   },
 };

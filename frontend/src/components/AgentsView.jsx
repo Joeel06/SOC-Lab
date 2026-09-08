@@ -39,10 +39,10 @@ export default function AgentsView({ onFilterAgent }) {
   }, []);
 
   if (state.loading) {
-    return <div className="alert-list-card"><div className="state-msg">Cargando agentes…</div></div>;
+    return <div className="alert-list-card glass-card"><div className="state-msg">Cargando agentes…</div></div>;
   }
   if (state.error) {
-    return <div className="alert-list-card"><div className="state-msg error">Error: {state.error}</div></div>;
+    return <div className="alert-list-card glass-card"><div className="state-msg error">Error: {state.error}</div></div>;
   }
 
   return (
@@ -59,7 +59,7 @@ export default function AgentsView({ onFilterAgent }) {
 
       <div className="agent-grid">
         {state.agents.map((a) => (
-          <button key={a.id ?? a.name} type="button" className="agent-card" onClick={() => onFilterAgent(a.name)}>
+          <button key={a.id ?? a.name} type="button" className="agent-card glass-card" onClick={() => onFilterAgent(a.name)}>
             <div className="agent-card-top">
               <span className={`agent-status agent-status-${a.status}`} />
               <span className="agent-name">{a.name}</span>

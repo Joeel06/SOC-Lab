@@ -1,4 +1,5 @@
 import { levelToSeverity } from './severity.js';
+import { extractMitreFromWazuhRule, inferMitreForSuricata } from './mitre.js';
 
 // Detecta si una alerta viene de Suricata (vía eve.json ingerido por Wazuh como
 // localfile) o es una alerta "nativa" de Wazuh (auth, FIM/syscheck, rootcheck, etc.)
@@ -42,6 +43,7 @@ export function normalizeAlert(doc, id) {
     srcIp: doc?.data?.srcip || doc?.data?.src_ip || doc?.data?.alert?.src_ip || null,
     dstIp: doc?.data?.dstip || doc?.data?.dest_ip || doc?.data?.alert?.dest_ip || null,
     category: doc?.data?.alert?.category || null,
+    mitre: extractMitreFromWazuhRule(doc) || inferMitreForSuricata(source, doc),
     raw: doc,
   };
 }

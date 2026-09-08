@@ -17,44 +17,37 @@ export default function SummaryBar({ summary }) {
   const total = SEVERITIES.reduce((sum, s) => sum + (summary.bySeverity[s.key] || 0), 0) || 1;
 
   return (
-    <div className="stat-strip">
-      <div className="stat-pills">
-        {SEVERITIES.map((s) => {
-          const count = summary.bySeverity[s.key] || 0;
-          const pct = Math.round((count / total) * 100);
-          return (
-            <div key={s.key} className={`stat-pill ${s.className}`}>
-              <span className="pct">
-                {count} <small>({pct}%)</small>
-              </span>
-              <span className="lbl">{s.label}</span>
-            </div>
-          );
-        })}
+    <div className="stat-grid">
+      {SEVERITIES.map((s) => {
+        const count = summary.bySeverity[s.key] || 0;
+        const pct = Math.round((count / total) * 100);
+        return (
+          <div key={s.key} className={`stat-widget glass-card ${s.className}`}>
+            {/* --pct alimenta el conic-gradient del anillo; el color sale de
+                la clase de severidad, no de un valor suelto aquí */}
+            <span className="stat-ring" style={{ '--pct': pct }}>{pct}%</span>
+            <div className="stat-value">{count}</div>
+            <div className="stat-label">{s.label}</div>
+          </div>
+        );
+      })}
+
+      <div className="stat-widget glass-card">
+        <span className="stat-icon">📊</span>
+        <div className="stat-value">{total}</div>
+        <div className="stat-label">Alertas totales</div>
       </div>
 
-      <div className="stat-numbers">
-        <div className="stat-number">
-          <span className="icon">📊</span>
-          <div>
-            <div className="value">{total}</div>
-            <div className="label">Alertas totales</div>
-          </div>
-        </div>
-        <div className="stat-number">
-          <span className="icon">🖧</span>
-          <div>
-            <div className="value">{summary.agentCount}</div>
-            <div className="label">Agentes con alertas</div>
-          </div>
-        </div>
-        <div className="stat-number">
-          <span className="icon">🕒</span>
-          <div>
-            <div className="value">{formatTime(summary.lastTimestamp)}</div>
-            <div className="label">Última alerta</div>
-          </div>
-        </div>
+      <div className="stat-widget glass-card">
+        <span className="stat-icon">🖧</span>
+        <div className="stat-value">{summary.agentCount}</div>
+        <div className="stat-label">Agentes con alertas</div>
+      </div>
+
+      <div className="stat-widget glass-card">
+        <span className="stat-icon">🕒</span>
+        <div className="stat-value stat-value-sm">{formatTime(summary.lastTimestamp)}</div>
+        <div className="stat-label">Última alerta</div>
       </div>
     </div>
   );

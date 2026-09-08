@@ -1,16 +1,93 @@
 import { Router } from 'express';
 import { config } from './config.js';
-import { fetchAlertsFromWazuh } from './wazuhClient.js';
+import { fetchAlertsFromWazuh, fetchTrendsFromWazuh } from './wazuhClient.js';
 import { fetchMockAlerts } from './mockData.js';
 import { fetchAgentsFromWazuh } from './wazuhManagerClient.js';
 import { summarize } from './normalize.js';
 import { groupAlerts } from './correlate.js';
-import { SEVERITY_ORDER } from './severity.js';
+import { SEVERITY_ORDER, levelToSeverity } from './severity.js';
 import { readSettings, writeSettings } from './settingsStore.js';
 import { sendTelegramMessage } from './telegram.js';
 import { analyzeAlert, getCachedAnalysis, setCachedAnalysis } from './gemini.js';
+import { verifyPassword, signSession } from './auth.js';
+import { requireAuth, SESSION_COOKIE } from './authMiddleware.js';
+import { buildMockTrends } from './mockTrends.js';
 
 export const router = Router();
+
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
+
+// Limitador de intentos de login muy simple, en memoria: basta para un panel
+// de un solo usuario en un lab, no pretende ser una solución para producción
+// a gran escala. username|ip -> { count, resetAt }
+const loginAttempts = new Map();
+const MAX_LOGIN_ATTEMPTS = 10;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+function isRateLimited(key) {
+  const entry = loginAttempts.get(key);
+  if (!entry || Date.now() > entry.resetAt) return false;
+  return entry.count >= MAX_LOGIN_ATTEMPTS;
+}
+
+function registerLoginFailure(key) {
+  const entry = loginAttempts.get(key);
+  if (!entry || Date.now() > entry.resetAt) {
+    loginAttempts.set(key, { count: 1, resetAt: Date.now() + LOGIN_WINDOW_MS });
+  } else {
+    entry.count += 1;
+  }
+}
+
+function cookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: config.auth.cookieSecure,
+    maxAge: SESSION_TTL_MS,
+    path: '/',
+  };
+}
+
+router.get('/health', (req, res) => {
+  res.json({ ok: true, mode: config.mode });
+});
+
+router.post('/auth/login', (req, res) => {
+  if (!config.auth.password) {
+    return res.status(503).json({ error: 'Autenticación no configurada en el servidor (falta ADMIN_PASSWORD en .env).' });
+  }
+
+  const { username, password } = req.body || {};
+  const key = `${username}|${req.ip}`;
+  if (isRateLimited(key)) {
+    return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.' });
+  }
+
+  const validUser = username === config.auth.user;
+  const validPass = verifyPassword(String(password || ''), config.auth.password);
+
+  if (!validUser || !validPass) {
+    registerLoginFailure(key);
+    return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
+  }
+
+  const token = signSession({ username: config.auth.user, exp: Date.now() + SESSION_TTL_MS }, config.auth.sessionSecret);
+  res.cookie(SESSION_COOKIE, token, cookieOptions());
+  res.json({ ok: true, user: { username: config.auth.user } });
+});
+
+router.get('/auth/me', requireAuth, (req, res) => {
+  res.json({ user: req.user });
+});
+
+router.post('/auth/logout', (req, res) => {
+  res.clearCookie(SESSION_COOKIE, { ...cookieOptions(), maxAge: undefined });
+  res.json({ ok: true });
+});
+
+// Todo lo que va después de esta línea exige sesión iniciada.
+router.use(requireAuth);
 
 async function getAlerts() {
   return config.mode === 'live' ? fetchAlertsFromWazuh({ size: 1500 }) : fetchMockAlerts({ size: 60 });
@@ -262,6 +339,30 @@ router.put('/settings', (req, res) => {
   res.json(publicSettings(saved));
 });
 
+// Tendencias para el dashboard de gráficas: alertas/día, top 10 IPs de
+// origen, distribución por severidad. En modo live se agrega en el propio
+// Indexer; en modo mock se genera una serie sintética de varios días (las
+// alertas de mockData.js sólo cubren las últimas 6h, no servirían para esto).
+router.get('/stats/trends', async (req, res) => {
+  try {
+    const days = Math.min(90, Math.max(1, Number(req.query.days) || 14));
+
+    if (config.mode === 'live') {
+      const { perDay, topSrcIps, byLevelBuckets } = await fetchTrendsFromWazuh({ days });
+      const bySeverity = { critical: 0, high: 0, medium: 0, low: 0 };
+      for (const b of byLevelBuckets) {
+        bySeverity[levelToSeverity(b.level)] += b.count;
+      }
+      return res.json({ mode: 'live', days, perDay, topSrcIps, bySeverity });
+    }
+
+    res.json({ mode: 'mock', days, ...buildMockTrends({ days }) });
+  } catch (err) {
+    console.error('Error obteniendo tendencias:', err);
+    res.status(502).json({ error: 'No se pudieron obtener las tendencias', detail: String(err.message || err) });
+  }
+});
+
 router.post('/telegram/test', async (req, res) => {
   try {
     const s = readSettings();
@@ -277,8 +378,4 @@ router.post('/telegram/test', async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });
   }
-});
-
-router.get('/health', (req, res) => {
-  res.json({ ok: true, mode: config.mode });
 });

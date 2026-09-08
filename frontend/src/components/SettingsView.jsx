@@ -28,7 +28,7 @@ export default function SettingsView({ onSaved }) {
   }, []);
 
   if (!form) {
-    return <div className="alert-list-card"><div className="state-msg">Cargando ajustes…</div></div>;
+    return <div className="alert-list-card glass-card"><div className="state-msg">Cargando ajustes…</div></div>;
   }
 
   async function handleSave(e) {
@@ -92,7 +92,15 @@ export default function SettingsView({ onSaved }) {
 
   return (
     <form className="settings-grid" onSubmit={handleSave}>
-      <section className="settings-card">
+      {/* La acción principal va la primera: es lo que se busca al entrar aquí */}
+      <div className="settings-actions">
+        <button type="submit" className="toggle-refresh on" disabled={saving}>
+          {saving ? 'Guardando…' : 'Guardar ajustes'}
+        </button>
+        {status && <p className={`settings-status ${status.type}`}>{status.text}</p>}
+      </div>
+
+      <section className="settings-card glass-card">
         <h2>Interfaz</h2>
 
         <label className="settings-field">
@@ -157,7 +165,7 @@ export default function SettingsView({ onSaved }) {
         </label>
       </section>
 
-      <section className="settings-card">
+      <section className="settings-card glass-card">
         <h2>Alertas por Telegram</h2>
         <p className="settings-hint">
           Crea un bot hablando con <b>@BotFather</b> en Telegram (<code>/newbot</code>), copia el
@@ -217,7 +225,7 @@ export default function SettingsView({ onSaved }) {
         {testStatus && <p className={`settings-status ${testStatus.type}`}>{testStatus.text}</p>}
       </section>
 
-      <section className="settings-card">
+      <section className="settings-card glass-card">
         <h2>Análisis con IA (Gemini)</h2>
         <p className="settings-hint">
           Saca una API key gratis en <b>Google AI Studio</b> (aistudio.google.com). Con ella, cada
@@ -281,12 +289,6 @@ export default function SettingsView({ onSaved }) {
         {aiTestStatus && <p className={`settings-status ${aiTestStatus.type}`}>{aiTestStatus.text}</p>}
       </section>
 
-      <div className="settings-actions">
-        <button type="submit" className="toggle-refresh on" disabled={saving}>
-          {saving ? 'Guardando…' : 'Guardar ajustes'}
-        </button>
-        {status && <p className={`settings-status ${status.type}`}>{status.text}</p>}
-      </div>
     </form>
   );
 }

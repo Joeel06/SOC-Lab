@@ -9,7 +9,7 @@ function correlationKey(a) {
 
 function toSingleton(a) {
   return {
-    ...a,
+    ...a, // ya incluye mitre (spread de la alerta original)
     count: 1,
     firstSeen: a.timestamp,
     lastSeen: a.timestamp,
@@ -76,6 +76,7 @@ export function groupAlerts(alerts, { windowMinutes = DEFAULT_WINDOW_MINUTES, en
         srcIp: alert.srcIp,
         dstIp: alert.dstIp,
         category: alert.category,
+        mitre: alert.mitre,
         count: 1,
         groupedIds: [alert.id],
         samples: [{ timestamp: alert.timestamp, raw: alert.raw }],
