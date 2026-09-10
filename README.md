@@ -1,5 +1,7 @@
 # 🛰️ Mini-SOC Casero
 
+<img width="1907" height="917" alt="image" src="https://github.com/user-attachments/assets/e7f683bd-c3a8-45b3-830c-4a4963a82d1c" />
+
 Laboratorio que simula un Security Operations Center (SOC) real: detección de amenazas de red, correlación de eventos, análisis asistido por IA y visualización propia.
 
 En vez de depender únicamente de las herramientas ya integradas de Wazuh (su Dashboard basado en OpenSearch/Kibana), este proyecto añade una capa de visualización a medida construida en **React + Node.js**, con correlación de alertas, alertado por Telegram y análisis de logs con IA (Gemini).
@@ -244,7 +246,6 @@ Esto confirma que la cadena de detección de red está funcionando correctamente
 
 ## 9. Panel propio: mini-soc-dashboard (React + Node)
 
-<img width="1907" height="917" alt="image" src="https://github.com/user-attachments/assets/e7f683bd-c3a8-45b3-830c-4a4963a82d1c" />
 
 
 Con Wazuh y Suricata funcionando, se construyó una aplicación propia (`mini-soc-dashboard`) en vez de depender solo del Dashboard nativo de Wazuh, con dos partes:
@@ -359,8 +360,6 @@ El frontend consume la API del backend (por defecto en `localhost` en el puerto 
 
 ## 11. Pruebas de validación (fuerza bruta SSH)
 
-<img width="1836" height="889" alt="image" src="https://github.com/user-attachments/assets/554ef9ff-ed8a-425b-b8f6-6f8970744ffc" />
-
 
 🧪 Para validar el pipeline completo de extremo a extremo (detección → correlación → IA → Telegram) se ejecutó una prueba controlada de fuerza bruta SSH desde la **Máquina Y** (Kali) contra la **Máquina Z** (Ubuntu objetivo), usando **Hydra**:
 
@@ -376,4 +375,9 @@ hydra -l ubuntu -P /ruta/al/diccionario.txt -t 4 -f ssh://<IP_MAQUINA_Z>
 > ✅ Prerrequisito: el servicio SSH debe estar instalado, activo y escuchando en la máquina objetivo (`sudo systemctl status ssh`, `sudo ss -tlnp | grep :22`), y el firewall debe permitir el tráfico desde la red del laboratorio.
 
 Resultado esperado: Suricata/el propio log de autenticación SSH genera múltiples eventos de intento fallido desde la misma IP en poco tiempo → el motor de correlación los agrupa en una sola alerta `×N` → al ser de severidad alta/crítica se dispara el análisis automático de IA → se envía la notificación a Telegram con el resumen generado. 🎯
+
+<img width="1836" height="889" alt="image" src="https://github.com/user-attachments/assets/554ef9ff-ed8a-425b-b8f6-6f8970744ffc" />
+
+<img width="424" height="922" alt="image" src="https://github.com/user-attachments/assets/e1c39f56-79c8-4f8c-9aac-939fa99957f4" />
+
 
