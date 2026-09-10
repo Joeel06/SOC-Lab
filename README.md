@@ -286,6 +286,9 @@ Como los certificados del laboratorio son autofirmados, el backend usa un dispat
 
 ### 9.2.1 Login del panel
 
+<img width="1919" height="906" alt="image" src="https://github.com/user-attachments/assets/3356ca34-bf0f-4647-966e-7570e194026b" />
+
+
 El panel está protegido por una pantalla de login propia (usuario + contraseña, con sesión por cookie) — sin esto configurado, el backend responde `503` a cualquier petición: falla cerrado, no abierto. Se configura también en `backend/.env`:
 
 ```bash
@@ -355,6 +358,9 @@ El frontend consume la API del backend (por defecto en `localhost` en el puerto 
 ---
 
 ## 11. Pruebas de validación (fuerza bruta SSH)
+
+<img width="1836" height="889" alt="image" src="https://github.com/user-attachments/assets/554ef9ff-ed8a-425b-b8f6-6f8970744ffc" />
+
 
 🧪 Para validar el pipeline completo de extremo a extremo (detección → correlación → IA → Telegram) se ejecutó una prueba controlada de fuerza bruta SSH desde la **Máquina Y** (Kali) contra la **Máquina Z** (Ubuntu objetivo), usando **Hydra**:
 
