@@ -3,3 +3,8 @@ node_modules/
 dist/
 *.log
 backend/data/
+
+# Herramientas locales de Claude Code (skills, config) — no forman parte del proyecto
+.agents/
+.claude/
+skills-lock.json
