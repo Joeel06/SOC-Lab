@@ -244,6 +244,9 @@ Esto confirma que la cadena de detección de red está funcionando correctamente
 
 ## 9. Panel propio: mini-soc-dashboard (React + Node)
 
+<img width="1907" height="917" alt="image" src="https://github.com/user-attachments/assets/e7f683bd-c3a8-45b3-830c-4a4963a82d1c" />
+
+
 Con Wazuh y Suricata funcionando, se construyó una aplicación propia (`mini-soc-dashboard`) en vez de depender solo del Dashboard nativo de Wazuh, con dos partes:
 
 - ⚙️ **Backend** (Node.js + Express, módulos ESM): expone una API propia que consulta Wazuh, normaliza y correlaciona las alertas, gestiona ajustes persistentes, y orquesta las notificaciones de Telegram y el análisis con IA.
