@@ -284,6 +284,27 @@ WAZUH_API_INSECURE=true
 
 Como los certificados del laboratorio son autofirmados, el backend usa un dispatcher HTTP personalizado (`undici`) con `rejectUnauthorized: false` cuando `*_INSECURE=true`, para poder conectar sin errores de TLS.
 
+### 9.2.1 Login del panel
+
+El panel está protegido por una pantalla de login propia (usuario + contraseña, con sesión por cookie) — sin esto configurado, el backend responde `503` a cualquier petición: falla cerrado, no abierto. Se configura también en `backend/.env`:
+
+```bash
+# Login del panel — obligatorio, si no ADMIN_PASSWORD queda vacío y nadie puede entrar
+ADMIN_USER=admin
+ADMIN_PASSWORD=<elige tu contraseña>
+
+# Opcional: si se deja vacío, el backend genera uno solo la primera vez y lo
+# guarda en backend/data/session_secret (fuera de git) — no hace falta tocarlo.
+SESSION_SECRET=
+# true si sirves el panel por HTTPS (recomendado en producción); en el lab,
+# por HTTP plano en LAN, déjalo en false o la cookie de sesión no se guardará.
+COOKIE_SECURE=false
+```
+
+- `ADMIN_USER` / `ADMIN_PASSWORD`: credenciales en texto plano (igual que las de Wazuh de arriba, sin hash que generar a mano) — son las que se piden en la pantalla de login del panel.
+- `SESSION_SECRET`: firma las cookies de sesión (HMAC-SHA256). No es necesario fijarlo a mano salvo que quieras que varias instancias del backend compartan sesión; rotarlo invalida todas las sesiones activas.
+- `COOKIE_SECURE`: pon `true` solo si sirves el panel por HTTPS — en HTTP plano (típico en LAN) la cookie no se guardaría con este valor en `true`.
+
 ### 9.3 Instalación y arranque
 
 ```bash
